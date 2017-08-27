@@ -12,10 +12,7 @@ e2 = 0.0
 e3 = 0.0
 
 #price variables
-@variables test begin
-    pi[1:5] >= 0.0
-end
-
+@variable(test, pi[1:5] >= 0.0)
 JuMP.fix(pi[1], 1.0)
 
 #consumption variables
@@ -25,14 +22,12 @@ JuMP.fix(pi[1], 1.0)
     x3[1:5] >= 0.0
 end
 
-
 #endowment variables
 @variables test begin
     o1[1:5] == 0.0
     o2[1:5] == 0.0
     o3[1:5] == 0.0
 end
-
 JuMP.fix(o1[2], b1 + e1)
 JuMP.fix(o1[3], b1 + e1)
 JuMP.fix(o1[4], b1 - e1)
@@ -58,22 +53,19 @@ JuMP.fix(o3[1], b3)
 end
 
 #individual utility functions
-
 #dummy u1,u2,u3 for now
 @expressions test begin
     u1, sum(pi[i]*x1[i] for i in 1:5)
     u2, sum(pi[i]*x2[i] for i in 1:5)
     u3, sum(pi[i]*x3[i] for i in 1:5)
 end
-
-#utility functions
 #@expressions test begin 
  #   u1, (1/(1-alpha))*(a1+x1[1])^(1-alpha)+d1*sum(rho1[i]*((1/(1-alpha))*(a1+x1[i])^(1-alpha)) for i in 2:5)
  #   u2, (1/(1-alpha))*(a2+x2[1])^(1-alpha)+d2*sum(rho2[i]*((1/(1-alpha))*(a2+x2[i])^(1-alpha)) for i in 2:5)
  #   u3, (1/(1-alpha))*(a3+x3[1])^(1-alpha)+d3*sum(rho3[i]*((1/(1-alpha))*(a3+x3[i])^(1-alpha)) for i in 2:5)
 #end
 
-#individual consumption/endowment sums
+#consumption/endowment sums
 @expressions test begin
     sumx1, sum(pi[i]*x1[i] for i in 1:5)
     sumo1, sum(pi[i]*o1[i] for i in 1:5)
@@ -81,16 +73,16 @@ end
     sumo2, sum(pi[i]*o2[i] for i in 1:5)
     sumx3, sum(pi[i]*x3[i] for i in 1:5)
     sumo3, sum(pi[i]*o3[i] for i in 1:5)
+    mktclear, (sumx1+sumx2+sumx3)-(sumo1+sumo2+sumo3)
 end
 
-#individual consumption constraints
-@constraint(test, sumx1<=sumo1)
-@constraint(test, sumx2<=sumo2)
-@constraint(test, sumx3<=sumo3)
-
-#market clearing expression/condition
-@expression(test, clear, (sumx1+sumx2+sumx3)-(sumo1+sumo2+sumo3))
-@constraint(test, clear <= 0)
+#consumption & market clearing constraints
+@constraints test begin
+    sumx1 <= sumo1
+    sumx2 <= sumo2
+    sumx3 <= sumo3
+    mktclear <= 0
+end
 
 @objective(test, Max, (u1+u2+u3))
 
