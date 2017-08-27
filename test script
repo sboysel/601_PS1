@@ -1,0 +1,108 @@
+using JuMP
+using Clp
+
+test = Model(solver = ClpSolver())
+
+#assign base values
+b1 = 500.0
+b2 = 500.0
+b3 = 1000.0
+e1 = 0.0
+e2 = 0.0
+e3 = 0.0
+
+#price variables
+@variables test begin
+    pi[1:5] >= 0.0
+end
+
+JuMP.fix(pi[1], 1.0)
+
+#consumption variables
+@variables test begin
+    x1[1:5] >= 0.0
+    x2[1:5] >= 0.0
+    x3[1:5] >= 0.0
+end
+
+
+#endowment variables
+@variables test begin
+    o1[1:5] == 0.0
+    o2[1:5] == 0.0
+    o3[1:5] == 0.0
+end
+
+JuMP.fix(o1[2], b1 + e1)
+JuMP.fix(o1[3], b1 + e1)
+JuMP.fix(o1[4], b1 - e1)
+JuMP.fix(o1[5], b1 - e1)
+JuMP.fix(o2[2], b2 + e2) 
+JuMP.fix(o2[3], b2 - e2)
+JuMP.fix(o2[4], b2 + e2) 
+JuMP.fix(o2[5], b2 - e2)
+JuMP.fix(o3[1], b3)
+
+#parameter variables
+@variables test begin
+    alpha == 2.0
+    a1 == 0.0
+    a2 == 0.0
+    a3 == 0.0
+    d1 == 0.95
+    d2 == 0.95
+    d3 == 0.95
+    rho1[2:5] == 0.25
+    rho2[2:5] == 0.25
+    rho3[2:5] == 0.25
+end
+
+#individual utility functions
+
+#dummy u1,u2,u3 for now
+@expressions test begin
+    u1, sum(pi[i]*x1[i] for i in 1:5)
+    u2, sum(pi[i]*x2[i] for i in 1:5)
+    u3, sum(pi[i]*x3[i] for i in 1:5)
+end
+
+#utility functions
+#@expressions test begin 
+ #   u1, (1/(1-alpha))*(a1+x1[1])^(1-alpha)+d1*sum(rho1[i]*((1/(1-alpha))*(a1+x1[i])^(1-alpha)) for i in 2:5)
+ #   u2, (1/(1-alpha))*(a2+x2[1])^(1-alpha)+d2*sum(rho2[i]*((1/(1-alpha))*(a2+x2[i])^(1-alpha)) for i in 2:5)
+ #   u3, (1/(1-alpha))*(a3+x3[1])^(1-alpha)+d3*sum(rho3[i]*((1/(1-alpha))*(a3+x3[i])^(1-alpha)) for i in 2:5)
+#end
+
+#individual consumption/endowment sums
+@expressions test begin
+    sumx1, sum(pi[i]*x1[i] for i in 1:5)
+    sumo1, sum(pi[i]*o1[i] for i in 1:5)
+    sumx2, sum(pi[i]*x2[i] for i in 1:5)
+    sumo2, sum(pi[i]*o2[i] for i in 1:5)
+    sumx3, sum(pi[i]*x3[i] for i in 1:5)
+    sumo3, sum(pi[i]*o3[i] for i in 1:5)
+end
+
+#individual consumption constraints
+@constraint(test, sumx1<=sumo1)
+@constraint(test, sumx2<=sumo2)
+@constraint(test, sumx3<=sumo3)
+
+#market clearing expression/condition
+@expression(test, clear, (sumx1+sumx2+sumx3)-(sumo1+sumo2+sumo3))
+@constraint(test, clear <= 0)
+
+@objective(test, Max, (u1+u2+u3))
+
+print(test)
+result = solve(test)
+
+println("objective value: ", getobjectivevalue(test))
+println("x1 = ", getvalue(sumx1))
+println("x2 = ", getvalue(sumx2))
+println("x3 = ", getvalue(sumx3))
+println("pi1 = ", getvalue(pi[1]))
+println("pi2 = ", getvalue(pi[2]))
+println("pi3 = ", getvalue(pi[3]))
+println("pi4 = ", getvalue(pi[4]))
+println("pi5 = ", getvalue(pi[5]))
